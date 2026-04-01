@@ -3,10 +3,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileIcon, LinkIcon, FileText, Download, Activity, Share2, ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useNavigate } from "react-router-dom";
-
 export function Stats() {
-  const navigate = useNavigate();
   const { data: stats, isLoading } = useGetStats({
     query: {
       queryKey: getGetStatsQueryKey(),
@@ -19,7 +16,7 @@ export function Stats() {
       <div className="container mx-auto px-4 py-12 max-w-5xl">
         <div className="mb-12 flex items-center gap-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => window.history.back()}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-card hover:bg-accent transition-colors"
             aria-label="Go back"
           >
