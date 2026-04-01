@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Activity, Share2 } from "lucide-react";
+import { Activity, Share2, ArrowLeft } from "lucide-react";
 
 export function Navbar() {
   return (
@@ -9,7 +9,14 @@ export function Navbar() {
           <Share2 className="h-6 w-6" />
           <span className="text-xl tracking-tight">ShareIt</span>
         </Link>
-        <nav className="flex items-center gap-6">
+        <nav className="flex items-center gap-3">
+          <button
+            onClick={() => window.history.back()}
+            className="flex items-center justify-center h-8 w-8 rounded-full border bg-card hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
           <Link href="/stats" className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
             <Activity className="h-4 w-4" />
             Stats
