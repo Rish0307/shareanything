@@ -38,6 +38,7 @@ export const ListSharesResponseItem = zod.object({
   fileSize: zod.number().nullish(),
   mimeType: zod.string().nullish(),
   downloadUrl: zod.string().nullish(),
+  authorName: zod.string(),
   downloadCount: zod.number(),
   createdAt: zod.coerce.date(),
   expiresAt: zod.coerce.date().nullish(),
@@ -51,6 +52,7 @@ export const CreateShareBody = zod.object({
   type: zod.enum(["text", "url"]),
   content: zod.string(),
   title: zod.string().nullish(),
+  authorName: zod.string().nullish(),
 });
 
 /**
@@ -69,6 +71,7 @@ export const GetShareResponse = zod.object({
   fileSize: zod.number().nullish(),
   mimeType: zod.string().nullish(),
   downloadUrl: zod.string().nullish(),
+  authorName: zod.string(),
   downloadCount: zod.number(),
   createdAt: zod.coerce.date(),
   expiresAt: zod.coerce.date().nullish(),
@@ -98,6 +101,7 @@ export const DownloadFileParams = zod.object({
 export const UploadFileBody = zod.object({
   file: zod.instanceof(File),
   title: zod.string().nullish(),
+  authorName: zod.string().nullish(),
 });
 
 /**

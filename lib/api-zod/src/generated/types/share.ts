@@ -22,6 +22,7 @@ export interface Share {
   mimeType?: string | null;
   /** @nullable */
   downloadUrl?: string | null;
+  authorName: string;
   downloadCount: number;
   createdAt: Date;
   /** @nullable */

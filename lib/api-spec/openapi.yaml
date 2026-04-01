@@ -172,6 +172,8 @@ paths:
                   format: binary
                 title:
                   type: ["string", "null"]
+                authorName:
+                  type: ["string", "null"]
               required:
                 - file
       responses:
@@ -231,6 +233,8 @@ components:
           type: ["string", "null"]
         downloadUrl:
           type: ["string", "null"]
+        authorName:
+          type: string
         downloadCount:
           type: integer
         createdAt:
@@ -242,6 +246,7 @@ components:
       required:
         - id
         - type
+        - authorName
         - downloadCount
         - createdAt
 
@@ -254,6 +259,8 @@ components:
         content:
           type: string
         title:
+          type: ["string", "null"]
+        authorName:
           type: ["string", "null"]
       required:
         - type

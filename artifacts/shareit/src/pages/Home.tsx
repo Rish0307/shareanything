@@ -4,51 +4,78 @@ import { Layout } from "@/components/layout/Layout";
 import { ShareZone } from "@/components/ShareZone";
 import { ShareCard } from "@/components/ShareCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuthorName } from "@/hooks/use-random-name";
 
 export function Home() {
-  const [refreshKey, setRefreshKey] = useState(0);
-  
+  const [, setRefreshKey] = useState(0);
+  const authorName = useAuthorName();
+
   const { data: shares, isLoading } = useListShares(
-    { limit: 12 },
-    { 
-      query: { 
-        queryKey: getListSharesQueryKey({ limit: 12 }),
-        refetchInterval: 5000 
-      } 
+    { limit: 30 },
+    {
+      query: {
+        queryKey: getListSharesQueryKey({ limit: 30 }),
+        refetchInterval: 4000,
+      },
     }
   );
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-12 md:py-24">
-        <div className="mb-16 text-center">
-          <h1 className="mb-4 text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl text-foreground">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8 text-center">
+          <h1 className="mb-2 text-4xl font-extrabold tracking-tight sm:text-5xl text-foreground">
             Share <span className="text-primary">Instantly</span>.
           </h1>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            Friction-free sharing for files, text, and URLs. Anonymous, ultra-fast, and secure.
+          <p className="text-muted-foreground">
+            No login. No limits. Drop a file, paste text, or share a URL — everyone sees it live.
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            You are <span className="font-semibold text-primary">{authorName}</span>
           </p>
         </div>
 
-        <ShareZone onSuccess={() => setRefreshKey(k => k + 1)} />
+        <ShareZone onSuccess={() => setRefreshKey((k) => k + 1)} />
 
-        <div className="mt-32">
-          <h3 className="mb-6 text-xl font-bold tracking-tight">Recent Shares</h3>
+        <div className="mt-12">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-bold tracking-tight">
+              Public Feed
+              {shares && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  {shares.length} {shares.length === 1 ? "share" : "shares"}
+                </span>
+              )}
+            </h2>
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+              </span>
+              Live
+            </span>
+          </div>
+
           {isLoading ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[...Array(6)].map((_, i) => (
-                <Skeleton key={i} className="h-24 w-full rounded-xl" />
+                <Skeleton key={i} className="h-28 w-full rounded-xl" />
               ))}
             </div>
           ) : shares && shares.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div
+              className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+              data-testid="list-shares"
+            >
               {shares.map((share) => (
                 <ShareCard key={share.id} share={share} />
               ))}
             </div>
           ) : (
             <div className="flex h-32 items-center justify-center rounded-xl border border-dashed bg-card/50">
-              <p className="text-muted-foreground">No recent shares. Be the first!</p>
+              <p className="text-muted-foreground">
+                Nothing shared yet. Be the first!
+              </p>
             </div>
           )}
         </div>

@@ -11,6 +11,7 @@ export const sharesTable = pgTable("shares", {
   fileSize: bigint("file_size", { mode: "number" }),
   mimeType: text("mime_type"),
   filePath: text("file_path"),
+  authorName: text("author_name").notNull().default("Anonymous"),
   downloadCount: integer("download_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   expiresAt: timestamp("expires_at", { withTimezone: true }),

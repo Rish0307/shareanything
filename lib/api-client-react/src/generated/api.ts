@@ -565,6 +565,12 @@ export const uploadFile = async (
   if (uploadFileBody.title !== undefined && uploadFileBody.title !== null) {
     formData.append(`title`, uploadFileBody.title);
   }
+  if (
+    uploadFileBody.authorName !== undefined &&
+    uploadFileBody.authorName !== null
+  ) {
+    formData.append(`authorName`, uploadFileBody.authorName);
+  }
 
   return customFetch<Share>(getUploadFileUrl(), {
     ...options,

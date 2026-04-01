@@ -32,6 +32,7 @@ export interface Share {
   mimeType?: string | null;
   /** @nullable */
   downloadUrl?: string | null;
+  authorName: string;
   downloadCount: number;
   createdAt: string;
   /** @nullable */
@@ -51,6 +52,8 @@ export interface CreateShareBody {
   content: string;
   /** @nullable */
   title?: string | null;
+  /** @nullable */
+  authorName?: string | null;
 }
 
 export interface Stats {
@@ -88,4 +91,6 @@ export type UploadFileBody = {
   file: Blob;
   /** @nullable */
   title?: string | null;
+  /** @nullable */
+  authorName?: string | null;
 };

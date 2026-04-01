@@ -10,4 +10,6 @@ export type UploadFileBody = {
   file: Blob;
   /** @nullable */
   title?: string | null;
+  /** @nullable */
+  authorName?: string | null;
 };

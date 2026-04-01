@@ -12,4 +12,6 @@ export interface CreateShareBody {
   content: string;
   /** @nullable */
   title?: string | null;
+  /** @nullable */
+  authorName?: string | null;
 }

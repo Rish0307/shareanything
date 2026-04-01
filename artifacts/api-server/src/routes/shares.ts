@@ -72,7 +72,7 @@ router.post("/shares", async (req, res): Promise<void> => {
     return;
   }
 
-  const { type, content, title } = parsed.data;
+  const { type, content, title, authorName } = parsed.data;
 
   const id = nanoid(10);
 
@@ -83,6 +83,7 @@ router.post("/shares", async (req, res): Promise<void> => {
       type,
       content,
       title: title ?? null,
+      authorName: authorName ?? "Anonymous",
     })
     .returning();
 
@@ -101,6 +102,7 @@ router.post("/shares/upload", upload.single("file"), async (req, res): Promise<v
   }
 
   const title = req.body?.title ?? null;
+  const authorName = req.body?.authorName ?? "Anonymous";
   const id = nanoid(10);
 
   const [share] = await db
@@ -113,6 +115,7 @@ router.post("/shares/upload", upload.single("file"), async (req, res): Promise<v
       fileSize: req.file.size,
       mimeType: req.file.mimetype,
       filePath: req.file.path,
+      authorName,
     })
     .returning();
 
