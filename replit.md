@@ -1,3 +1,20 @@
+# ShareIt - Instant Anonymous File & Text Sharing
+
+## Features
+- Public feed showing all shares in real-time (auto-refreshes every 4s)
+- Anonymous sharing — each visitor gets a random animal name (e.g. "Sneaky Penguin") stored in localStorage
+- Share files (any size), text snippets, and URLs without login
+- Inline Copy button on text cards, Download button on file cards in the feed
+- Real XHR-based upload progress tracking
+- Fast direct file downloads with Content-Length header
+- Stats page with platform-wide share counts
+
+## Artifacts
+- `artifacts/shareit` — React + Vite frontend (port assigned dynamically, previewPath: `/`)
+- `artifacts/api-server` — Express 5 API server (previewPath: `/api`)
+
+---
+
 # Workspace
 
 ## Overview

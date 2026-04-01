@@ -1,6 +1,17 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
-import { FileIcon, Link as LinkIcon, FileText, Download, Clock, User } from "lucide-react";
+import {
+  FileIcon,
+  Link as LinkIcon,
+  FileText,
+  Download,
+  Clock,
+  User,
+  Copy,
+  Check,
+  ExternalLink,
+} from "lucide-react";
 import { Share } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +22,8 @@ interface ShareCardProps {
 }
 
 export function ShareCard({ share }: ShareCardProps) {
+  const [copied, setCopied] = useState(false);
+
   const getIcon = () => {
     switch (share.type) {
       case "file": return <FileIcon className="h-5 w-5" />;
@@ -28,7 +41,7 @@ export function ShareCard({ share }: ShareCardProps) {
 
   const getPreview = () => {
     if (share.type === "text" && share.content) {
-      return share.content.slice(0, 80) + (share.content.length > 80 ? "..." : "");
+      return share.content.slice(0, 120) + (share.content.length > 120 ? "..." : "");
     }
     if (share.type === "url" && share.content) {
       return share.content;
@@ -38,10 +51,37 @@ export function ShareCard({ share }: ShareCardProps) {
 
   const formatSize = (bytes?: number | null) => {
     if (!bytes) return null;
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-    if (bytes === 0) return "0 Byte";
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    if (bytes === 0) return "0 B";
     const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)).toString());
     return Math.round(bytes / Math.pow(1024, i)) + " " + sizes[i];
+  };
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!share.content) return;
+    navigator.clipboard.writeText(share.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownload = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const a = document.createElement("a");
+    a.href = `/api/shares/${share.id}/download`;
+    a.download = share.fileName ?? "download";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleOpenUrl = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!share.content) return;
+    window.open(share.content, "_blank", "noopener,noreferrer");
   };
 
   const preview = getPreview();
@@ -49,11 +89,12 @@ export function ShareCard({ share }: ShareCardProps) {
   return (
     <Link href={`/s/${share.id}`} data-testid={`card-share-${share.id}`}>
       <Card className="group cursor-pointer overflow-hidden border-border/50 bg-card transition-all hover:border-primary/50 hover:shadow-md hover:shadow-primary/5 h-full">
-        <CardContent className="p-5 flex flex-col gap-3">
+        <CardContent className="p-4 flex flex-col gap-3">
+          {/* Header row */}
           <div className="flex items-center gap-3">
             <div
               className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors",
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors",
                 "bg-accent text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
               )}
             >
@@ -61,38 +102,81 @@ export function ShareCard({ share }: ShareCardProps) {
             </div>
 
             <div className="flex flex-1 items-center justify-between gap-2 overflow-hidden">
-              <h4 className="truncate font-semibold text-foreground group-hover:text-primary transition-colors">
+              <h4 className="truncate text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                 {getTitle()}
               </h4>
-              <Badge variant="secondary" className="shrink-0 uppercase text-xs">
+              <Badge variant="secondary" className="shrink-0 uppercase text-[10px]">
                 {share.type}
               </Badge>
             </div>
           </div>
 
+          {/* Content preview */}
           {preview && (
-            <p className="text-xs text-muted-foreground line-clamp-2 font-mono bg-muted/50 px-3 py-2 rounded-md break-all">
+            <p className="text-xs text-muted-foreground line-clamp-2 font-mono bg-muted/50 px-3 py-2 rounded-md break-all leading-relaxed">
               {preview}
             </p>
           )}
 
-          <div className="flex items-center justify-between text-xs text-muted-foreground mt-auto pt-1 border-t border-border/30">
-            <div className="flex items-center gap-1 font-medium text-foreground/70">
-              <User className="h-3 w-3" />
-              <span data-testid={`text-author-${share.id}`}>{share.authorName}</span>
+          {/* File size for files without preview */}
+          {share.type === "file" && (
+            <div className="text-xs text-muted-foreground bg-muted/30 px-3 py-2 rounded-md flex items-center justify-between">
+              <span>{share.fileName}</span>
+              {share.fileSize && <span className="font-medium">{formatSize(share.fileSize)}</span>}
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {formatDistanceToNow(new Date(share.createdAt), { addSuffix: true })}
-              </div>
-              {share.type === "file" && share.fileSize && (
-                <span>{formatSize(share.fileSize)}</span>
+          )}
+
+          {/* Action row */}
+          <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/30">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground/80">
+              <User className="h-3 w-3" />
+              <span data-testid={`text-author-${share.id}`} className="font-medium">{share.authorName}</span>
+              <span className="mx-1">·</span>
+              <Clock className="h-3 w-3" />
+              <span>{formatDistanceToNow(new Date(share.createdAt), { addSuffix: true })}</span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              {share.type === "text" && (
+                <button
+                  data-testid={`button-copy-${share.id}`}
+                  onClick={handleCopy}
+                  title="Copy text"
+                  className={cn(
+                    "flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-all",
+                    copied
+                      ? "bg-green-500/15 text-green-600"
+                      : "bg-primary/10 text-primary hover:bg-primary/20"
+                  )}
+                >
+                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  {copied ? "Copied" : "Copy"}
+                </button>
               )}
-              <div className="flex items-center gap-1">
-                <Download className="h-3 w-3" />
-                {share.downloadCount}
-              </div>
+
+              {share.type === "file" && (
+                <button
+                  data-testid={`button-download-${share.id}`}
+                  onClick={handleDownload}
+                  title="Download file"
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-all"
+                >
+                  <Download className="h-3 w-3" />
+                  Download
+                </button>
+              )}
+
+              {share.type === "url" && (
+                <button
+                  data-testid={`button-open-${share.id}`}
+                  onClick={handleOpenUrl}
+                  title="Open URL"
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-all"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Open
+                </button>
+              )}
             </div>
           </div>
         </CardContent>

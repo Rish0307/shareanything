@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { UploadCloud, Link as LinkIcon, FileText, Check, Copy } from "lucide-react";
-import { useCreateShare, useUploadFile } from "@workspace/api-client-react";
+import { useCreateShare } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,10 +21,11 @@ export function ShareZone({ onSuccess }: ShareZoneProps) {
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
 
   const { toast } = useToast();
   const createShare = useCreateShare();
-  const uploadFile = useUploadFile();
   const authorName = useAuthorName();
 
   const handleShareSuccess = (id: string) => {
@@ -46,40 +47,45 @@ export function ShareZone({ onSuccess }: ShareZoneProps) {
       formData.append("file", file);
       formData.append("authorName", authorName);
 
-      setUploadProgress(10);
-      const interval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(interval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 100);
+      setIsUploading(true);
+      setUploadProgress(0);
 
-      uploadFile.mutate(
-        { data: formData as any },
-        {
-          onSuccess: (data) => {
-            clearInterval(interval);
-            setUploadProgress(100);
-            setTimeout(() => {
-              handleShareSuccess(data.id);
-            }, 300);
-          },
-          onError: () => {
-            clearInterval(interval);
-            setUploadProgress(0);
-            toast({
-              title: "Upload failed",
-              description: "Please try again.",
-              variant: "destructive",
-            });
-          },
+      const xhr = new XMLHttpRequest();
+      xhrRef.current = xhr;
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          setUploadProgress(Math.round((e.loaded / e.total) * 100));
         }
-      );
+      };
+
+      xhr.onload = () => {
+        setIsUploading(false);
+        if (xhr.status === 201) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            setUploadProgress(100);
+            setTimeout(() => handleShareSuccess(data.id), 200);
+          } catch {
+            toast({ title: "Upload failed", description: "Invalid response.", variant: "destructive" });
+            setUploadProgress(0);
+          }
+        } else {
+          toast({ title: "Upload failed", description: "Please try again.", variant: "destructive" });
+          setUploadProgress(0);
+        }
+      };
+
+      xhr.onerror = () => {
+        setIsUploading(false);
+        setUploadProgress(0);
+        toast({ title: "Upload failed", description: "Network error.", variant: "destructive" });
+      };
+
+      xhr.open("POST", "/api/shares/upload");
+      xhr.send(formData);
     },
-    [uploadFile, toast, authorName]
+    [toast, authorName]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -229,11 +235,11 @@ export function ShareZone({ onSuccess }: ShareZoneProps) {
               </h3>
               <p className="mt-2 text-muted-foreground">Any file type, no size limits.</p>
 
-              {(uploadFile.isPending || uploadProgress > 0) && (
+              {(isUploading || uploadProgress > 0) && (
                 <div className="mt-8 w-full max-w-md">
                   <Progress value={uploadProgress} className="h-2" />
                   <p className="mt-2 text-sm text-muted-foreground text-center">
-                    Uploading... {uploadProgress}%
+                    {isUploading ? `Uploading... ${uploadProgress}%` : "Done!"}
                   </p>
                 </div>
               )}

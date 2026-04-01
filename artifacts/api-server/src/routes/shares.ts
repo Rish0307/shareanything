@@ -155,6 +155,9 @@ router.get("/shares/:id/download", async (req, res): Promise<void> => {
     .set({ downloadCount: (share.downloadCount ?? 0) + 1 })
     .where(eq(sharesTable.id, rawId));
 
+  const stat = fs.statSync(share.filePath);
+  res.setHeader("Content-Length", stat.size);
+  res.setHeader("Cache-Control", "no-store");
   res.download(share.filePath, share.fileName ?? "download");
 });
 
