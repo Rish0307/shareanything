@@ -1,9 +1,8 @@
 import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
-import { UploadCloud, Link as LinkIcon, FileText } from "lucide-react";
+import { UploadCloud, Send, X } from "lucide-react";
 import { useCreateShare } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
@@ -14,10 +13,18 @@ interface ShareZoneProps {
   onSuccess: () => void;
 }
 
+function isUrl(value: string) {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function ShareZone({ onSuccess }: ShareZoneProps) {
-  const [activeTab, setActiveTab] = useState<"file" | "text" | "url">("file");
-  const [textContent, setTextContent] = useState("");
-  const [urlContent, setUrlContent] = useState("");
+  const [content, setContent] = useState("");
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
@@ -28,8 +35,8 @@ export function ShareZone({ onSuccess }: ShareZoneProps) {
 
   const handleShareSuccess = (_id: string) => {
     onSuccess();
-    setTextContent("");
-    setUrlContent("");
+    setContent("");
+    setPendingFile(null);
     setUploadProgress(0);
     toast({
       title: "Shared!",
@@ -37,11 +44,8 @@ export function ShareZone({ onSuccess }: ShareZoneProps) {
     });
   };
 
-  const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      if (acceptedFiles.length === 0) return;
-      const file = acceptedFiles[0];
-
+  const uploadFile = useCallback(
+    (file: File) => {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("authorName", authorName);
@@ -87,148 +91,120 @@ export function ShareZone({ onSuccess }: ShareZoneProps) {
     [toast, authorName]
   );
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      if (acceptedFiles.length === 0) return;
+      setPendingFile(acceptedFiles[0]);
+      setContent("");
+    },
+    []
+  );
+
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     maxFiles: 1,
     multiple: false,
-    noClick: activeTab !== "file",
-    noKeyboard: activeTab !== "file",
+    noClick: true,
+    noKeyboard: true,
   });
 
-  const handleTextShare = () => {
-    if (!textContent.trim()) return;
+  const handleShare = () => {
+    if (pendingFile) {
+      uploadFile(pendingFile);
+      return;
+    }
+    const trimmed = content.trim();
+    if (!trimmed) return;
+
+    const type = isUrl(trimmed) ? "url" : "text";
     createShare.mutate(
-      { data: { type: "text", content: textContent, authorName } },
+      { data: { type, content: trimmed, authorName } },
       {
         onSuccess: (data) => handleShareSuccess(data.id),
         onError: () => {
-          toast({ title: "Failed to share text", variant: "destructive" });
+          toast({ title: "Failed to share", variant: "destructive" });
         },
       }
     );
   };
 
-  const handleUrlShare = () => {
-    if (!urlContent.trim()) return;
-    createShare.mutate(
-      { data: { type: "url", content: urlContent, authorName } },
-      {
-        onSuccess: (data) => handleShareSuccess(data.id),
-        onError: () => {
-          toast({ title: "Failed to share URL", variant: "destructive" });
-        },
-      }
-    );
-  };
+  const canShare = !!pendingFile || !!content.trim();
+  const isPending = isUploading || createShare.isPending;
 
   return (
     <div className="mx-auto w-full max-w-3xl">
-      <div className="mb-8 flex justify-center gap-4">
-        {[
-          { id: "file", icon: UploadCloud, label: "File" },
-          { id: "text", icon: FileText, label: "Text" },
-          { id: "url", icon: LinkIcon, label: "URL" },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            data-testid={`tab-${tab.id}`}
-            onClick={() => setActiveTab(tab.id as "file" | "text" | "url")}
-            className={cn(
-              "flex items-center gap-2 rounded-full px-6 py-3 font-medium transition-all",
-              activeTab === tab.id
-                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                : "bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
-            )}
-          >
-            <tab.icon className="h-5 w-5" />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
       <div
         {...getRootProps()}
         className={cn(
           "relative overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-300",
           isDragActive
             ? "border-primary bg-primary/5 scale-[1.02]"
-            : "border-border bg-card hover:border-primary/50",
-          activeTab === "file" ? "cursor-pointer" : "cursor-default"
+            : "border-border bg-card hover:border-primary/50"
         )}
       >
         <input {...getInputProps()} data-testid="input-file-upload" />
 
-        <div className="flex min-h-[280px] flex-col items-center justify-center p-8 text-center">
-          {activeTab === "file" && (
-            <>
-              <div
-                className={cn(
-                  "mb-6 flex h-20 w-20 items-center justify-center rounded-full transition-colors",
-                  isDragActive ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
-                )}
-              >
-                <UploadCloud className="h-10 w-10" />
-              </div>
-              <h3 className="text-xl font-bold">
-                {isDragActive ? "Drop to upload" : "Click or drag to upload"}
-              </h3>
-              <p className="mt-2 text-muted-foreground">Any file type, no size limits.</p>
+        {isDragActive && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-primary/5 backdrop-blur-sm">
+            <UploadCloud className="h-14 w-14 text-primary mb-3" />
+            <p className="text-xl font-bold text-primary">Drop to upload</p>
+          </div>
+        )}
 
+        <div className="p-6">
+          {pendingFile ? (
+            <div className="flex flex-col items-center gap-4 py-6">
+              <div className="flex items-center gap-3 rounded-xl border bg-background/60 px-5 py-4 w-full max-w-md">
+                <UploadCloud className="h-6 w-6 text-primary shrink-0" />
+                <span className="flex-1 truncate font-medium">{pendingFile.name}</span>
+                <button
+                  onClick={() => { setPendingFile(null); setUploadProgress(0); }}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
               {(isUploading || uploadProgress > 0) && (
-                <div className="mt-8 w-full max-w-md">
+                <div className="w-full max-w-md">
                   <Progress value={uploadProgress} className="h-2" />
                   <p className="mt-2 text-sm text-muted-foreground text-center">
                     {isUploading ? `Uploading... ${uploadProgress}%` : "Done!"}
                   </p>
                 </div>
               )}
-            </>
+            </div>
+          ) : (
+            <Textarea
+              data-testid="textarea-text-content"
+              placeholder="Paste text, a URL, or drop a file anywhere..."
+              className="min-h-[160px] resize-none border-none bg-transparent text-base placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleShare();
+              }}
+            />
           )}
 
-          {activeTab === "text" && (
-            <div className="w-full max-w-2xl px-4" onClick={(e) => e.stopPropagation()}>
-              <Textarea
-                data-testid="textarea-text-content"
-                placeholder="Paste your text or code here..."
-                className="min-h-[180px] resize-none bg-background/50 text-lg font-mono placeholder:font-sans focus-visible:ring-primary"
-                value={textContent}
-                onChange={(e) => setTextContent(e.target.value)}
-              />
-              <Button
-                data-testid="button-share-text"
-                size="lg"
-                className="mt-6 w-full text-lg"
-                onClick={handleTextShare}
-                disabled={!textContent.trim() || createShare.isPending}
-              >
-                {createShare.isPending ? "Sharing..." : "Share Text"}
-              </Button>
-            </div>
-          )}
-
-          {activeTab === "url" && (
-            <div className="w-full max-w-xl px-4" onClick={(e) => e.stopPropagation()}>
-              <Input
-                data-testid="input-url-content"
-                placeholder="https://..."
-                className="h-16 bg-background/50 text-lg focus-visible:ring-primary"
-                value={urlContent}
-                onChange={(e) => setUrlContent(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleUrlShare();
-                }}
-              />
-              <Button
-                data-testid="button-share-url"
-                size="lg"
-                className="mt-6 w-full text-lg"
-                onClick={handleUrlShare}
-                disabled={!urlContent.trim() || createShare.isPending}
-              >
-                {createShare.isPending ? "Sharing..." : "Share URL"}
-              </Button>
-            </div>
-          )}
+          <div className="mt-4 flex items-center justify-between border-t pt-4">
+            <button
+              onClick={open}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <UploadCloud className="h-4 w-4" />
+              Attach file
+            </button>
+            <Button
+              data-testid="button-share"
+              size="sm"
+              className="gap-2"
+              onClick={handleShare}
+              disabled={!canShare || isPending}
+            >
+              <Send className="h-4 w-4" />
+              {isPending ? "Sharing..." : "Share"}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
