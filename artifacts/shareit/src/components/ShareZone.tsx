@@ -123,10 +123,6 @@ export function ShareZone({ onSuccess }: ShareZoneProps) {
 
   return (
     <div className="mx-auto w-full max-w-3xl">
-      <div className="mb-3 text-center text-sm text-muted-foreground">
-        Sharing as <span className="font-semibold text-primary">{authorName}</span>
-      </div>
-
       <div className="mb-8 flex justify-center gap-4">
         {[
           { id: "file", icon: UploadCloud, label: "File" },

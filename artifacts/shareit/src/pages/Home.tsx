@@ -4,12 +4,9 @@ import { Layout } from "@/components/layout/Layout";
 import { ShareZone } from "@/components/ShareZone";
 import { ShareCard } from "@/components/ShareCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuthorName } from "@/hooks/use-random-name";
 
 export function Home() {
   const queryClient = useQueryClient();
-  const authorName = useAuthorName();
-
   const sharesQueryKey = getListSharesQueryKey({ limit: 30 });
 
   const { data: shares, isLoading } = useListShares(
@@ -33,12 +30,6 @@ export function Home() {
           <h1 className="mb-2 text-4xl font-extrabold tracking-tight sm:text-5xl text-foreground">
             Share <span className="text-primary">Instantly</span>.
           </h1>
-          <p className="text-muted-foreground">
-            No login. No limits. Drop a file, paste text, or share a URL — everyone sees it live.
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            You are <span className="font-semibold text-primary">{authorName}</span>
-          </p>
         </div>
 
         <ShareZone onSuccess={handleShareSuccess} />
