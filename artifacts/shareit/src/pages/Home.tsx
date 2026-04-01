@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { useListShares, getListSharesQueryKey } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { ShareZone } from "@/components/ShareZone";
 import { ShareCard } from "@/components/ShareCard";
@@ -7,18 +7,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthorName } from "@/hooks/use-random-name";
 
 export function Home() {
-  const [, setRefreshKey] = useState(0);
+  const queryClient = useQueryClient();
   const authorName = useAuthorName();
+
+  const sharesQueryKey = getListSharesQueryKey({ limit: 30 });
 
   const { data: shares, isLoading } = useListShares(
     { limit: 30 },
     {
       query: {
-        queryKey: getListSharesQueryKey({ limit: 30 }),
+        queryKey: sharesQueryKey,
         refetchInterval: 4000,
       },
     }
   );
+
+  const handleShareSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: sharesQueryKey });
+  };
 
   return (
     <Layout>
@@ -35,7 +41,7 @@ export function Home() {
           </p>
         </div>
 
-        <ShareZone onSuccess={() => setRefreshKey((k) => k + 1)} />
+        <ShareZone onSuccess={handleShareSuccess} />
 
         <div className="mt-12">
           <div className="mb-4 flex items-center justify-between">

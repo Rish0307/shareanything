@@ -62,6 +62,7 @@ router.get("/shares", async (req, res): Promise<void> => {
     downloadUrl: s.type === "file" ? `/api/shares/${s.id}/download` : null,
   }));
 
+  res.setHeader("Cache-Control", "no-store");
   res.json(ListSharesResponse.parse(result));
 });
 
