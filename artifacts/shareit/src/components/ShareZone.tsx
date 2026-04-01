@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { useDropzone } from "react-dropzone";
-import { UploadCloud, Link as LinkIcon, FileText, Check, Copy } from "lucide-react";
+import { UploadCloud, Link as LinkIcon, FileText } from "lucide-react";
 import { useCreateShare } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,8 +18,6 @@ export function ShareZone({ onSuccess }: ShareZoneProps) {
   const [activeTab, setActiveTab] = useState<"file" | "text" | "url">("file");
   const [textContent, setTextContent] = useState("");
   const [urlContent, setUrlContent] = useState("");
-  const [shareLink, setShareLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
@@ -28,13 +26,14 @@ export function ShareZone({ onSuccess }: ShareZoneProps) {
   const createShare = useCreateShare();
   const authorName = useAuthorName();
 
-  const handleShareSuccess = (id: string) => {
-    const link = `${window.location.origin}/s/${id}`;
-    setShareLink(link);
+  const handleShareSuccess = (_id: string) => {
     onSuccess();
+    setTextContent("");
+    setUrlContent("");
+    setUploadProgress(0);
     toast({
-      title: "Shared successfully",
-      description: "Everyone on the site can now see your share.",
+      title: "Shared!",
+      description: "Your share is now visible in the public feed.",
     });
   };
 
@@ -121,62 +120,6 @@ export function ShareZone({ onSuccess }: ShareZoneProps) {
       }
     );
   };
-
-  const copyToClipboard = () => {
-    if (!shareLink) return;
-    navigator.clipboard.writeText(shareLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast({ title: "Copied to clipboard" });
-  };
-
-  const reset = () => {
-    setShareLink(null);
-    setTextContent("");
-    setUrlContent("");
-    setUploadProgress(0);
-  };
-
-  if (shareLink) {
-    return (
-      <div
-        data-testid="share-success"
-        className="mx-auto w-full max-w-2xl rounded-xl border border-primary/20 bg-card p-8 shadow-2xl animate-in zoom-in-95 fade-in duration-300"
-      >
-        <div className="flex flex-col items-center gap-6 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/20 text-primary">
-            <Check className="h-8 w-8" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold">Shared as {authorName}</h2>
-            <p className="mt-2 text-muted-foreground">
-              It's now visible to everyone on the public feed.
-            </p>
-          </div>
-          <div className="flex w-full items-center gap-2">
-            <Input
-              readOnly
-              value={shareLink}
-              data-testid="input-share-link"
-              className="h-12 bg-muted text-lg font-medium font-mono"
-            />
-            <Button
-              onClick={copyToClipboard}
-              size="lg"
-              className="h-12 px-8"
-              data-testid="button-copy-link"
-            >
-              {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-              {copied ? "Copied" : "Copy Link"}
-            </Button>
-          </div>
-          <Button variant="ghost" onClick={reset} className="mt-4" data-testid="button-share-another">
-            Share something else
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto w-full max-w-3xl">
