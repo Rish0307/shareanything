@@ -11,11 +11,14 @@ import {
   Copy,
   Check,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
-import { Share } from "@workspace/api-client-react";
+import { Share, useDeleteShare, getListSharesQueryKey } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface ShareCardProps {
   share: Share;
@@ -23,6 +26,10 @@ interface ShareCardProps {
 
 export function ShareCard({ share }: ShareCardProps) {
   const [copied, setCopied] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const deleteShare = useDeleteShare();
 
   const getIcon = () => {
     switch (share.type) {
@@ -64,6 +71,28 @@ export function ShareCard({ share }: ShareCardProps) {
     navigator.clipboard.writeText(share.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 3000);
+      return;
+    }
+    deleteShare.mutate(
+      { id: share.id },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListSharesQueryKey({ limit: 30 }) });
+          toast({ title: "Deleted", description: "Share removed from the feed." });
+        },
+        onError: () => {
+          toast({ title: "Delete failed", variant: "destructive" });
+        },
+      }
+    );
   };
 
   const handleDownload = (e: React.MouseEvent) => {
@@ -177,6 +206,22 @@ export function ShareCard({ share }: ShareCardProps) {
                   Open
                 </button>
               )}
+
+              <button
+                data-testid={`button-delete-${share.id}`}
+                onClick={handleDelete}
+                title={confirmDelete ? "Click again to confirm" : "Delete"}
+                disabled={deleteShare.isPending}
+                className={cn(
+                  "flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-all",
+                  confirmDelete
+                    ? "bg-red-500/15 text-red-600 hover:bg-red-500/25"
+                    : "bg-muted text-muted-foreground hover:bg-red-500/15 hover:text-red-600"
+                )}
+              >
+                <Trash2 className="h-3 w-3" />
+                {confirmDelete ? "Sure?" : "Delete"}
+              </button>
             </div>
           </div>
         </CardContent>
