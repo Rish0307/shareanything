@@ -1,11 +1,17 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { setBaseUrl } from "@workspace/api-client-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { Home } from "@/pages/Home";
 import { ShareDetail } from "@/pages/ShareDetail";
 import { Stats } from "@/pages/Stats";
+
+const apiUrl = import.meta.env.VITE_API_URL;
+if (apiUrl) {
+  setBaseUrl(apiUrl);
+}
 
 const queryClient = new QueryClient();
 
