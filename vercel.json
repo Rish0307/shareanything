@@ -1,7 +1,5 @@
 {
   "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter @workspace/shareit run build",
-  "outputDirectory": "artifacts/shareit/dist",
-  "env": {
-    "VITE_API_URL": "@vite_api_url"
-  }
+  "outputDirectory": "artifacts/shareit/dist"
 }
+
