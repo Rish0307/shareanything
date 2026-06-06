@@ -1,5 +1,5 @@
 {
   "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter @workspace/shareit run build",
-  "outputDirectory": "artifacts/shareit/dist"
+  "outputDirectory": "artifacts/shareit/dist/public"
 }
 
