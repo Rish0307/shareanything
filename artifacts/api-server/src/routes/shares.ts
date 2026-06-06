@@ -5,6 +5,11 @@ import fs from "fs";
 import { nanoid } from "nanoid";
 import { eq, desc, count, sql } from "drizzle-orm";
 import { db, sharesTable } from "@workspace/db";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseKey);
 import {
   ListSharesQueryParams,
   ListSharesResponse,
@@ -18,24 +23,8 @@ import {
 
 const router: IRouter = Router();
 
-const UPLOADS_DIR = path.join(process.cwd(), "uploads");
-
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, UPLOADS_DIR);
-  },
-  filename: (_req, file, cb) => {
-    const uniqueName = `${nanoid()}-${file.originalname}`;
-    cb(null, uniqueName);
-  },
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
 });
 
 router.get("/shares", async (req, res): Promise<void> => {
@@ -106,6 +95,20 @@ router.post("/shares/upload", upload.single("file"), async (req, res): Promise<v
   const authorName = req.body?.authorName ?? "Anonymous";
   const id = nanoid(10);
 
+  const uniqueName = `${nanoid()}-${req.file.originalname}`;
+  
+  const { error: storageError } = await supabase.storage
+    .from('shares')
+    .upload(uniqueName, req.file.buffer, {
+      contentType: req.file.mimetype,
+    });
+
+  if (storageError) {
+    console.error("Supabase Storage Error:", storageError);
+    res.status(500).json({ error: "Failed to upload to storage", details: storageError });
+    return;
+  }
+
   const [share] = await db
     .insert(sharesTable)
     .values({
@@ -115,7 +118,7 @@ router.post("/shares/upload", upload.single("file"), async (req, res): Promise<v
       fileName: req.file.originalname,
       fileSize: req.file.size,
       mimeType: req.file.mimetype,
-      filePath: req.file.path,
+      filePath: uniqueName,
       authorName,
     })
     .returning();
@@ -146,8 +149,12 @@ router.get("/shares/:id/download", async (req, res): Promise<void> => {
     return;
   }
 
-  if (!fs.existsSync(share.filePath)) {
-    res.status(404).json({ error: "File not found on disk" });
+  const { data: fileData, error: storageError } = await supabase.storage
+    .from('shares')
+    .download(share.filePath);
+
+  if (storageError || !fileData) {
+    res.status(404).json({ error: "File not found in storage" });
     return;
   }
 
@@ -156,10 +163,11 @@ router.get("/shares/:id/download", async (req, res): Promise<void> => {
     .set({ downloadCount: (share.downloadCount ?? 0) + 1 })
     .where(eq(sharesTable.id, rawId));
 
-  const stat = fs.statSync(share.filePath);
-  res.setHeader("Content-Length", stat.size);
+  const buffer = Buffer.from(await fileData.arrayBuffer());
+  res.setHeader("Content-Length", share.fileSize ?? buffer.length);
   res.setHeader("Cache-Control", "no-store");
-  res.download(share.filePath, share.fileName ?? "download");
+  res.setHeader("Content-Disposition", `attachment; filename="${share.fileName ?? "download"}"`);
+  res.send(buffer);
 });
 
 router.get("/shares/:id", async (req, res): Promise<void> => {
@@ -206,8 +214,8 @@ router.delete("/shares/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  if (share.filePath && fs.existsSync(share.filePath)) {
-    fs.unlinkSync(share.filePath);
+  if (share.filePath) {
+    await supabase.storage.from('shares').remove([share.filePath]);
   }
 
   await db.delete(sharesTable).where(eq(sharesTable.id, params.data.id));
