@@ -7,7 +7,7 @@
   </a>
 </p>
 
-<img src="https://i.pinimg.com/originals/ad/fc/cd/adfccd6a72515359c1c283f912b67616.gif" alt="Banner" width="100%" />
+<img src="https://i.pinimg.com/originals/3e/2c/3e/3e2c3e1e95b3642e0325b3e2ab70a92f.gif" alt="Banner" width="100%" />
 
 ## 📌 About ShareAnything & Me
 - 🌐 **Full-Stack Workspace** — A robust monorepo built for high-performance applications with Supabase and Vercel.
